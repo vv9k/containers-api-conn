@@ -1,0 +1,53 @@
+name: Main
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - "*.md"
+    branches:
+      - master
+    tags:
+      - "**"
+  pull_request:
+    paths-ignore:
+      - "*.md"
+    branches:
+      - master
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Set up Rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          components: clippy,rustfmt
+      - uses: actions/checkout@v2
+      - run: |
+          cargo clippy --all-targets --all-features -- -D clippy::all
+          cargo fmt --all -- --check
+
+  test:
+    needs: [lint]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup Rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: stable
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Test
+        run: |
+          cargo test --all-features --all-targets
+          cargo test --doc
